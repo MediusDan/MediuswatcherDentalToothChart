@@ -1,0 +1,155 @@
+-- Dental Charting Application Database Schema
+-- Run this SQL to set up your database
+
+CREATE DATABASE IF NOT EXISTS dental_chart;
+USE dental_chart;
+
+-- Patients table
+CREATE TABLE patients (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    date_of_birth DATE,
+    phone VARCHAR(20),
+    email VARCHAR(255),
+    address TEXT,
+    insurance_provider VARCHAR(255),
+    insurance_id VARCHAR(100),
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Tooth conditions lookup table
+CREATE TABLE conditions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(20),
+    color VARCHAR(7) NOT NULL, -- hex color for chart display
+    description TEXT,
+    is_treatment BOOLEAN DEFAULT FALSE -- true if this is a treatment/procedure
+);
+
+-- Insert default conditions
+INSERT INTO conditions (name, code, color, description, is_treatment) VALUES
+('Healthy', 'H', '#4CAF50', 'No issues detected', FALSE),
+('Cavity', 'CA', '#FF5722', 'Decay present', FALSE),
+('Filling', 'FI', '#2196F3', 'Amalgam or composite filling', TRUE),
+('Crown', 'CR', '#9C27B0', 'Full crown restoration', TRUE),
+('Root Canal', 'RC', '#FF9800', 'Endodontic treatment', TRUE),
+('Missing', 'MI', '#9E9E9E', 'Tooth has been extracted or never erupted', FALSE),
+('Implant', 'IM', '#00BCD4', 'Dental implant placed', TRUE),
+('Bridge', 'BR', '#673AB7', 'Part of a dental bridge', TRUE),
+('Veneer', 'VE', '#E91E63', 'Porcelain or composite veneer', TRUE),
+('Sealant', 'SE', '#8BC34A', 'Preventive sealant applied', TRUE),
+('Watch', 'WA', '#FFC107', 'Area to monitor', FALSE),
+('Fracture', 'FR', '#F44336', 'Cracked or fractured tooth', FALSE),
+('Abscess', 'AB', '#B71C1C', 'Infection present', FALSE),
+('Impacted', 'IP', '#607D8B', 'Impacted tooth', FALSE),
+('Primary', 'PR', '#03A9F4', 'Primary/baby tooth still present', FALSE);
+
+-- Procedures/treatments with costs
+CREATE TABLE procedures (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(20) NOT NULL, -- ADA code
+    name VARCHAR(255) NOT NULL,
+    category VARCHAR(100),
+    default_cost DECIMAL(10,2),
+    description TEXT
+);
+
+-- Insert common dental procedures
+INSERT INTO procedures (code, name, category, default_cost, description) VALUES
+('D0120', 'Periodic Oral Evaluation', 'Diagnostic', 50.00, 'Established patient exam'),
+('D0150', 'Comprehensive Oral Evaluation', 'Diagnostic', 85.00, 'New patient exam'),
+('D0210', 'Full Mouth X-rays', 'Diagnostic', 150.00, 'Complete series of radiographs'),
+('D0274', 'Bitewings - Four Films', 'Diagnostic', 60.00, 'Four bitewing radiographs'),
+('D1110', 'Prophylaxis - Adult', 'Preventive', 100.00, 'Adult teeth cleaning'),
+('D1120', 'Prophylaxis - Child', 'Preventive', 70.00, 'Child teeth cleaning'),
+('D1351', 'Sealant - Per Tooth', 'Preventive', 45.00, 'Pit and fissure sealant'),
+('D2140', 'Amalgam - One Surface', 'Restorative', 150.00, 'Silver filling, one surface'),
+('D2150', 'Amalgam - Two Surfaces', 'Restorative', 190.00, 'Silver filling, two surfaces'),
+('D2330', 'Composite - One Surface, Anterior', 'Restorative', 170.00, 'Tooth-colored filling, front tooth'),
+('D2331', 'Composite - Two Surfaces, Anterior', 'Restorative', 215.00, 'Tooth-colored filling, front tooth'),
+('D2391', 'Composite - One Surface, Posterior', 'Restorative', 185.00, 'Tooth-colored filling, back tooth'),
+('D2392', 'Composite - Two Surfaces, Posterior', 'Restorative', 240.00, 'Tooth-colored filling, back tooth'),
+('D2750', 'Crown - Porcelain/Ceramic', 'Restorative', 1200.00, 'Full porcelain crown'),
+('D2751', 'Crown - Porcelain Fused to Metal', 'Restorative', 1100.00, 'PFM crown'),
+('D2950', 'Core Buildup', 'Restorative', 300.00, 'Core buildup including pins'),
+('D3310', 'Root Canal - Anterior', 'Endodontics', 800.00, 'Root canal on front tooth'),
+('D3320', 'Root Canal - Bicuspid', 'Endodontics', 950.00, 'Root canal on premolar'),
+('D3330', 'Root Canal - Molar', 'Endodontics', 1200.00, 'Root canal on molar'),
+('D4341', 'Scaling/Root Planing - Per Quadrant', 'Periodontics', 250.00, 'Deep cleaning per quadrant'),
+('D4910', 'Periodontal Maintenance', 'Periodontics', 150.00, 'Perio maintenance cleaning'),
+('D5110', 'Complete Upper Denture', 'Prosthodontics', 1800.00, 'Full upper denture'),
+('D5120', 'Complete Lower Denture', 'Prosthodontics', 1800.00, 'Full lower denture'),
+('D6010', 'Implant - Endosteal', 'Implants', 2500.00, 'Surgical implant placement'),
+('D6058', 'Implant Abutment', 'Implants', 800.00, 'Abutment for implant'),
+('D6065', 'Implant Crown - Porcelain', 'Implants', 1500.00, 'Crown on implant'),
+('D7140', 'Extraction - Erupted Tooth', 'Oral Surgery', 200.00, 'Simple extraction'),
+('D7210', 'Extraction - Surgical', 'Oral Surgery', 350.00, 'Surgical extraction'),
+('D7240', 'Extraction - Impacted, Complete Bony', 'Oral Surgery', 500.00, 'Impacted tooth removal'),
+('D9110', 'Emergency Palliative Treatment', 'Adjunctive', 100.00, 'Emergency pain relief'),
+('D9215', 'Local Anesthesia', 'Adjunctive', 50.00, 'Anesthesia in addition to procedure');
+
+-- Patient tooth records
+CREATE TABLE tooth_records (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id INT NOT NULL,
+    tooth_number INT NOT NULL, -- Universal numbering 1-32
+    condition_id INT,
+    surface VARCHAR(10), -- M, O, D, B, L or combinations like MOD
+    notes TEXT,
+    recorded_by VARCHAR(100),
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
+    FOREIGN KEY (condition_id) REFERENCES conditions(id)
+);
+
+-- Treatment plans
+CREATE TABLE treatment_plans (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id INT NOT NULL,
+    name VARCHAR(255),
+    status ENUM('proposed', 'accepted', 'in_progress', 'completed', 'declined') DEFAULT 'proposed',
+    total_cost DECIMAL(10,2),
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
+);
+
+-- Treatment plan items
+CREATE TABLE treatment_plan_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    treatment_plan_id INT NOT NULL,
+    tooth_number INT,
+    procedure_id INT NOT NULL,
+    surface VARCHAR(10),
+    cost DECIMAL(10,2),
+    status ENUM('planned', 'scheduled', 'completed', 'cancelled') DEFAULT 'planned',
+    scheduled_date DATE,
+    completed_date DATE,
+    notes TEXT,
+    FOREIGN KEY (treatment_plan_id) REFERENCES treatment_plans(id) ON DELETE CASCADE,
+    FOREIGN KEY (procedure_id) REFERENCES procedures(id)
+);
+
+-- Tooth history/audit log
+CREATE TABLE tooth_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id INT NOT NULL,
+    tooth_number INT NOT NULL,
+    action VARCHAR(50), -- 'condition_added', 'condition_removed', 'note_added', 'treatment_completed'
+    old_value TEXT,
+    new_value TEXT,
+    performed_by VARCHAR(100),
+    performed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
+);
+
+-- Create indexes for better performance
+CREATE INDEX idx_tooth_records_patient ON tooth_records(patient_id);
+CREATE INDEX idx_tooth_records_tooth ON tooth_records(tooth_number);
+CREATE INDEX idx_treatment_plans_patient ON treatment_plans(patient_id);
+CREATE INDEX idx_tooth_history_patient ON tooth_history(patient_id);
